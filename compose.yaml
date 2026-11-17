@@ -1,0 +1,68 @@
+name: network-crm
+services:
+  db:
+    image: network-crm-db:0.1.0
+    build: {context: ., dockerfile: deploy/db.Dockerfile}
+    environment:
+      POSTGRES_DB: network_crm
+      POSTGRES_USER: crm_migrator
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?set DB_ADMIN_PASSWORD}
+      APP_DB_PASSWORD: ${DB_APP_PASSWORD:?set DB_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U crm_migrator -d network_crm']
+      interval: 5s
+      retries: 15
+    restart: unless-stopped
+    mem_limit: 768m
+  migrate:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    command: [alembic, -c, /app/alembic.ini, upgrade, head]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://crm_migrator:${DB_ADMIN_PASSWORD}@db/network_crm
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [database]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  api:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    environment:
+      DATABASE_URL: postgresql+psycopg://crm_app:${DB_APP_PASSWORD}@db/network_crm
+      APP_ORIGIN: ${APP_ORIGIN:?set APP_ORIGIN}
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    networks: [database, web]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 20s
+      retries: 5
+  web:
+    build: {context: ., dockerfile: frontend/Dockerfile}
+    ports: ['127.0.0.1:${HTTP_PORT:-8080}:8080']
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [web]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:8080/']
+      interval: 20s
+      retries: 5
+networks:
+  database: {internal: true}
+  web: {}
+volumes:
+  pgdata: {}

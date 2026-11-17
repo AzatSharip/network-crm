@@ -1,0 +1,49 @@
+{
+  "database": "18.6",
+  "records": 10000,
+  "query_runs": 6,
+  "warmup_excluded": true,
+  "http_in_process": true,
+  "results": [
+    {
+      "query": "Синтетический Контакт 04731",
+      "matches": 1,
+      "median_ms": 31.22,
+      "max_ms": 37.59
+    },
+    {
+      "query": "Уфа стоматология",
+      "matches": 2500,
+      "median_ms": 88.73,
+      "max_ms": 95.91
+    },
+    {
+      "query": "synthetic713@example.com",
+      "matches": 1,
+      "median_ms": 39.72,
+      "max_ms": 44.77
+    },
+    {
+      "query": "компания24",
+      "matches": 143,
+      "median_ms": 40.79,
+      "max_ms": 44.68
+    },
+    {
+      "query": "Синтетичский",
+      "matches": 10000,
+      "median_ms": 258.54,
+      "max_ms": 270.88
+    },
+    {
+      "query": "ZZZ_NOT_FOUND",
+      "matches": 0,
+      "median_ms": 153.8,
+      "max_ms": 154.68
+    }
+  ],
+  "plans": {
+    "fts": "Seq Scan on persons  (cost=0.00..865.00 rows=625 width=16) (actual time=0.011..1.749 rows=2500.00 loops=1)\n  Filter: ((search_vector @@ '''уф'' & ''стоматолог'''::tsquery) AND (workspace_id = 'fee07164-69c2-43b0-b97a-a3827ed02956'::uuid))\n  Rows Removed by Filter: 7500\n  Buffers: shared hit=715\nPlanning:\n  Buffers: shared hit=55\nPlanning Time: 1.489 ms\nExecution Time: 1.811 ms",
+    "trigram": "Seq Scan on persons  (cost=0.00..865.00 rows=1 width=16) (actual time=0.626..7.674 rows=11.00 loops=1)\n  Filter: ((search_text ~~* '%synthetic713%'::text) AND (workspace_id = 'fee07164-69c2-43b0-b97a-a3827ed02956'::uuid))\n  Rows Removed by Filter: 9989\n  Buffers: shared hit=715\nPlanning:\n  Buffers: shared hit=10\nPlanning Time: 0.463 ms\nExecution Time: 7.700 ms"
+  }
+}

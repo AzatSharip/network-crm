@@ -1,0 +1,10 @@
+[Unit]
+Description=Encrypted Network CRM PostgreSQL backup and restore verification
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/network-crm/backup.env
+WorkingDirectory=/opt/network-crm
+ExecStart=/opt/network-crm/scripts/scheduled-backup.sh
+UMask=0077
+Nice=10
+IOSchedulingClass=idle

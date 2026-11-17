@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: Gitleaks staged files
+        entry: gitleaks protect --staged --redact
+        language: system
+        pass_filenames: false
+      - id: data-paths
+        name: Prevent personal data artifacts
+        entry: python3 scripts/check-repository.py
+        language: system
+        pass_filenames: false

@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily Network CRM encrypted backup
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=30m
+[Install]
+WantedBy=timers.target
