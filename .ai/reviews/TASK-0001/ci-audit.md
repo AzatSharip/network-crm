@@ -1,13 +1,35 @@
 # TASK-0001 — independent CI audit delta review
 
-**Verdict: CHANGES_REQUIRED.** 2026-11-17. Тот же независимый reviewer/integrator, без субагентов и изменений production code.
+**Verdict: APPROVED.** Exact SHA: `897c03e3b846bc216454e201709d94049dd25dc7`. 2026-11-17. Тот же независимый reviewer/integrator, без субагентов и изменений production code.
 
-- Exact reviewed SHA: `806e89891585edd7ad3b40622307ef266ce08c65` (`codex/mvp`).
-- Integration base/current main: `e09f4ebd02432c937130742b0d3ef68d87c1c539`.
+- Exact reviewed SHA: `897c03e3b846bc216454e201709d94049dd25dc7` (`codex/mvp`).
+- Previous reviewed delta: `806e89891585edd7ad3b40622307ef266ce08c65` — CHANGES_REQUIRED, C1; историческое evidence сохранено ниже.
+- Integration base (до разрешённого FF): `e09f4ebd02432c937130742b0d3ef68d87c1c539`.
 - Scope: delta CI workflow, audit script, его тесты, README/docs/handoff. Git подтвердил отсутствие изменений backend/frontend/deploy/compose относительно approved `6de1301af34bc4c6feae7a5a4f6abe060141f26f`, включая frontend dependency manifests/lockfile.
-- Review-only output: этот файл. Merge/commit/push/deploy не выполнялись; task done не выставлен. При CHANGES_REQUIRED разрешение интегрировать не применяется.
+- Единственный изменяемый reviewer файл — этот report. После APPROVED отдельно разрешены его commit и локальный FF main с identity check. Task/handoff не меняются, task done не выставляется; push/deploy запрещены.
 
-## C1 — P2: некорректный audit JSON принимается как успешная проверка
+## Повторный review C1 delta — APPROVED
+
+**C1 CLOSED на 897c03e.** Проверены только исправление validateReport и entrypoint regression относительно 806e898; прежний scope не расширялся. Общая валидация вызывается внутри audit() до runtime policy и внутри assess() до full policy. Object maps, все шесть counters (SafeInteger>=0), severity/nodes/via, per-level и total counts проверяются до принятия решения. Lock/packages также требуют object map. Allowlist и expiry не изменены. Новых blocking findings в delta нет.
+
+Preflight: clean checkout на exact SHA, Node22.12.0; реальные npm audit подтвердили доступность registry. DB, UI, credentials и Atlas не требовались. Исходные main repro снова использовали только in-memory подмену spawnSync + syncBuiltinESMExports; production-файлы/lockfile не патчились.
+
+| Собственная проверка на 897c03e | Результат |
+|---|---|
+| `node --test scripts/tests/audit-frontend.test.mjs` | **PASSED:** 7/7, 219.8 ms, включая настоящий main с subprocess responses |
+| Исходный C1: runtime без counters/findings | **PASSED:** main отвергает |
+| Исходный C1: runtime critical findings при summary0 | **PASSED:** main отвергает |
+| Исходный C1: full vulnerabilities=[] | **PASSED:** main отвергает |
+| Дополнительные counters probes | **PASSED:** отрицательное, дробное, строковое, null, unsafe integer; отсутствие каждого из шести counters отвергнуто |
+| Lock/packages null/array | **PASSED:** assess отвергает |
+| Валидный runtime critical report | **PASSED:** структура проходит, strict runtime policy блокирует без исключений |
+| Настоящий `node scripts/audit-frontend.mjs` | **PASSED:** runtime0, full high5, пять прежних explicit exceptions, blocked=[]; NOT FIXED warning |
+| `git diff --check 806e898 HEAD` | **PASSED** |
+| Runtime identity | **PASSED:** backend/frontend/deploy/compose, включая dependency versions/lockfile, идентичны approved6de1301 |
+
+Полные API/UI/build suites не повторялись: runtime unchanged. Live Atlas evidence остаётся reported, не собственным тестом reviewer. Non-blocking замечание о формулировке полного CI output ниже остаётся открытым и не отменяет approval. Временное исключение по-прежнему не исправляет upstream и прекращается 2026-12-17.
+
+## Исторический C1 — P2 (CLOSED на 897c03e): некорректный audit JSON принимается как успешная проверка
 
 **Место:** `scripts/audit-frontend.mjs:75–90`; дополнительный путь `:16–23,51–63`.
 
@@ -27,7 +49,7 @@
 
 **Требуемое исправление:** валидировать оба отчёта общей проверкой до применения policy: findings — непустотный по типу object-map (пустой map допустим, массив/null нет), необходимые severity counters — конечные неотрицательные целые числа, значения severity и структура записей валидны, summary согласован с findings. Runtime после успешной валидации должен отвергать любые high/critical без исключений. Добавить tests реального main/audit entrypoint с подменой subprocess result: нынешние шесть tests вызывают только assess и не проверяют обход runtime path.
 
-## Собственное evidence
+## Собственное evidence первого CI review (806e898)
 
 Preflight: checkout clean на exact SHA; Node22.12.0; сетевой доступ подтверждён успешными настоящими npm audit и чтением GitHub advisory. Тесты не требуют DB, credentials, браузера или Atlas. Стандартные API/UI suites не запускались согласно ограниченному scope. Инъекции выполнены только в памяти отдельного процесса, файлы приложения/lockfile не менялись.
 
@@ -53,4 +75,4 @@ Non-blocking documentation observation: SECURITY обещает полный о�
 
 ## Продолжение
 
-Исправить C1 на task branch, добавить entrypoint regressions и предъявить новый exact SHA тому же reviewer. До повторного APPROVED не интегрировать. Main остаётся `e09f4ebd02432c937130742b0d3ef68d87c1c539`. Само временное исключение для известного build-only риска не является finding; блокирует неполная проверка входных отчётов.
+C1 закрыт, exact `897c03e3b846bc216454e201709d94049dd25dc7` APPROVED. Разрешённая интеграция: commit только этого report, убедиться, что остальные tracked files совпадают с exact SHA, затем FF main и повторный identity/clean-status check. API/UI повторять не требуется. Основной агент отдельно выполняет разрешённый ему push/CI; reviewer ничего не публикует и не отмечает task done.
