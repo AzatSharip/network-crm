@@ -1,7 +1,7 @@
 # TASK-0002 — Premium interface
 
 Type: implementation
-Status: in_progress
+Status: done
 Integration branch: main
 Task branch: codex/premium-ui
 Integration base: 2b56ab1
@@ -21,3 +21,5 @@ Validation: frontend lint/build PASS (Node22.22.0); 8 frontend checks PASS (5 Ch
 Independent review: APPROVED exact implementation `275a7ea62b291bea5335b98fdb3123fc214e8853`; `.ai/reviews/TASK-0002/review.md`. U1/U2 CLOSED. Locally FF-integrated into main at `45c2303036ed068c022a574af2ff52f79cc4bf0e`; integrated tree identical to approved SHA except review metadata. Deployment/publish pending parent delivery, so task remains in_progress.
 
 Reviewer evidence: previous8/8 frontend checks+lint/build PASS; current independent synthetic browser probe PASS for80-node320px fit and computed default/hover/header contrast. Current real-API targeted test blocked by demo login429 (no reset); implementer targeted/lint/build PASS reported. No backend/dependency/auth changes.
+
+Delivery complete: approved275a7ea deployed frontend-only; public JS/CSS SHA256 match local build, authenticated browser view and web health PASS, unauthenticated API401. Other26 containers retain start/status/health/images; shared gateway config hash unchanged. Pre-update encrypted backup+isolated restore PASS, previous frontend image/source retained. GitHub CI5cde415 PASS (34API,9frontend checks, audits/Gitleaks). No Tailscale or backend changes.

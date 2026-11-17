@@ -1,5 +1,7 @@
 # Состояние MVP — 2026-11-17
 
+Интерфейс обновлён в TASK-0002: approved275a7ea, независимый reviewer интегрировал main, frontend-only обновление доставлено. Новый поиск/фильтры, карточки телефона, граф и общий визуальный стиль: [Интерфейс](INTERFACE.md). [CI5cde415](https://github.com/AzatSharip/network-crm/actions/runs/44150631906) PASS:34 API+9 frontend checks, audits/Gitleaks. Backup/restore и public asset hashes/health/browser PASS; остальные26 containers не изменились.
+
 MVP реализован, независимо проверен, интегрирован в main и опубликован с разрешения владельца. Рабочий Atlas HTTPS включён после отдельного согласования. Реальные данные, URL размещения, ключи и данные владельца хранятся вне публичного Git.
 
 | Критерии исходного задания | Подтверждение |
