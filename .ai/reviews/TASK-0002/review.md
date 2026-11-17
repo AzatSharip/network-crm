@@ -1,10 +1,27 @@
 # TASK-0002 — independent UI review
 
-**CHANGES_REQUIRED** — exact implementation `5cc703bdef2947d5310a39ea20c0338c4925b1bb`, base/main `2b56ab11f2a238448dac38bb547fda2ab1b46345`. Один reviewer; production edits, integration, push/deploy не выполнялись.
+**APPROVED** — exact implementation `275a7ea62b291bea5335b98fdb3123fc214e8853`, integration base `2b56ab11f2a238448dac38bb547fda2ab1b46345`. Тот же независимый reviewer; production edits не выполнялись. Локальная FF-интеграция разрешена, push/deploy не выполняются. Первый review5cc703b был CHANGES_REQUIRED; evidence ниже сохранено как историческое.
 
 Scope: App.tsx, Graph.tsx, styles.css, interface tests/docs; регрессии, keyboard UX, responsive layout и выбранные accessibility checks. Backend/dependencies/auth не изменены и повторно не аудировались.
 
-## U1 — P2: «Показать весь граф» не вмещает допустимый граф на ширине 320
+## Delta review U1/U2 — CLOSED
+
+Проверены только b89bd17 и test-only275a7ea относительно review416b2d8: minZoom и zoom-out floor0.01, resize().fit(), цвета #696e63/#696d63, новый bounded80-node/contrast regression. Reduced-motion стабилизация действует только в тесте и не меняет runtime. Новых blocking findings нет.
+
+Собственные проверки на exact275a7ea:
+
+- `scripts/run-e2e.py -- --grep 80-person` попытка: **BLOCKED BY ENVIRONMENT**, login HTTP429 на synthetic account; счётчики не сбрасывались. Это не PASS этого real-API теста и не UI regression.
+- Вместо повторных login использован независимый Chrome/Playwright probe с текущим Vite UI и полностью перехваченными synthetic GET /me,/workspaces,/members,/people,/graph. Backend/auth не проверялись и не обходились на сервере; фиктивные ответы существуют только в browser test context. Реальные component code, CSS и Cytoscape исполнялись без модификаций.
+- **PASSED U1:** 80-node star graph, viewport320×900, реальная кнопка «Показать весь граф» без дополнительного вызова fit из probe. Canvas290×420; zoom0.18729; rendered bounds x50..240,y102.95..317.05. Все bounds внутри canvas. Zoom-out дал0.14983, ниже старого floor0.3.
+- **PASSED U2:** computed contrast profession/default5.23535, profession/hover4.96949, header5.01703. Независимый расчёт по исходным цветам дал те же результаты. В probe reducedMotion=reduce исключает промежуточный transparent hover background.
+- **PASSED:** git diff --check; backend/deploy/compose и dependency manifests/lockfile неизменны относительно main.
+- Полные8 checks и lint/build из первого reviewer run остаются ранее воспроизведённым evidence. Последние targeted regression/lint/build PASS implementer — **reported**, не присвоены reviewer. Полный suite не повторялся. Physical device/Safari/screen reader/full WCAG/deployment по-прежнему NOT TESTED.
+
+Approval связан только с275a7ea. После commit отчёта требуется exact-tree identity check и разрешённый FF main; изменение task/handoff только метаданные интеграции. Deployment остаётся отдельным действием основного агента.
+
+## Исторические findings первого review (5cc703b)
+
+### U1 — P2 (CLOSED на275a7ea): «Показать весь граф» не вмещает допустимый граф на ширине 320
 
 Место: `frontend/src/Graph.tsx:303–308` вместе с `minZoom: 0.3` на строке 207 и текущим layout.
 
@@ -16,7 +33,7 @@ Repro без записей backend: войти synthetic account, открыт�
 
 Нужно разрешить fit zoom ниже текущего порога либо адаптировать layout/ограничение к размеру контейнера; добавить bounded graph regression на 320px, проверяющий реальные rendered bounds после кнопки fit, а не только наличие canvas.
 
-## U2 — P2: мелкий содержательный текст новой палитры ниже minimum contrast
+### U2 — P2 (CLOSED на275a7ea): мелкий содержательный текст новой палитры ниже minimum contrast
 
 Место: `frontend/src/styles.css:594–600` и `:640–644`.
 
@@ -31,7 +48,7 @@ Repro без записей backend: войти synthetic account, открыт�
 
 Нужно затемнить указанные foreground или изменить backgrounds до >=4.5:1 с запасом; проверить default/hover backgrounds. Полный WCAG audit не проводился.
 
-## Проверки и ограничения
+## Проверки и ограничения первого review
 
 - Preflight: clean checkout, exact HEAD/base подтверждены; локальные API8000/Vite8080 доступны; Node22.22.0 и Chrome/Playwright работают. Synthetic credentials загружались штатным launcher/аналогичным дочерним процессом вне Git, не выводились. Production/Atlas не использовались.
 - Первый E2E: 3 renderer PASS, 5 browser FAIL на login HTTP429. У demo-account накопилось 17 попыток от предыдущих прогонов. Проверены localhost18432 и synthetic @example.com account; удалена только его hashed account limiter row. IP counters, runtime policy, пароли и код не изменены. Это test-environment contention, не UI finding.
@@ -45,4 +62,4 @@ Repro без записей backend: войти synthetic account, открыт�
 
 ## Продолжение
 
-Исправить только U1/U2, затем предъявить новый exact SHA тому же reviewer для bounded delta review. До APPROVED не интегрировать. Main остаётся2b56ab1; TASK-0002 review/changes_required. Проверки остальных сценариев выше не нужно повторять без новой причины.
+U1/U2 закрыты,275a7ea APPROVED. Разрешена локальная FF-интеграция после identity check. Не публиковать/не развёртывать из reviewer; основной агент выполняет отдельную доставку актуального approved frontend, не старого5cc703b. Task не считать полностью доставленной до deployment evidence.
