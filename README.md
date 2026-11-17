@@ -32,7 +32,9 @@ ruff format --check backend scripts deploy/*.py
 pip-audit -r backend/requirements.txt
 cd frontend
 npm run build
-npm audit --audit-level=high
+cd ..
+node --test scripts/tests/audit-frontend.test.mjs
+node scripts/audit-frontend.mjs
 ```
 
 Для браузерных тестов укажите CRM_E2E_URL, CRM_E2E_EMAIL и CRM_E2E_PASSWORD **синтетического** аккаунта и выполните `npm test` в frontend. Используется установленный Chrome. `scripts/seed-demo.py` создаёт вымышленные контакты только в пустой БД и только с CRM_SEED_SYNTHETIC=yes; случайный пароль записывается вне Git. `scripts/benchmark.py` создаёт отдельную БД с 10k вымышленных карточек, снимает метрики и удаляет её.

@@ -32,8 +32,9 @@ jobs:
       - run: python scripts/test.py
       - run: ruff check backend scripts && ruff format --check backend scripts
       - run: pip-audit -r backend/requirements.txt
-      - run: npm ci && npm run build && npm audit --audit-level=high
+      - run: npm ci && npm run build
         working-directory: frontend
+      - run: node --test scripts/tests/audit-frontend.test.mjs && node scripts/audit-frontend.mjs
       - name: Browser scenarios against real API and PostgreSQL
         run: |
           python -m alembic -c backend/alembic.ini upgrade head

@@ -14,7 +14,8 @@
 | Local encrypted backup/restore | PASS: 8 persons/2 workspaces/1 suggestion; повреждённый ciphertext отвергнут; временные БД удалены |
 | Atlas encrypted backup/restore | PASS: 0 persons/2 workspaces/0 suggestions, migration0001; ежедневный timer enabled |
 | Off-host копия | PASS: копия на Mac, совпадение SHA-256 с restore receipt, расшифровка независимым ключом |
-| pip-audit / npm audit | PASS: без известных уязвимостей на момент проверки |
+| pip-audit | PASS, без известных уязвимостей |
+| npm audit | Runtime PASS; full audit: известный build-only GHSA-fc5q-39xc-vjpf, временное точечное исключение до2026-12-17, см. SECURITY.md |
 | Gitleaks tree/staged/history | PASS staged/tree/all-history на implementation750f7f1; ручной поиск private identifiers без совпадений |
 | Full Docker Compose | PASS: local и Atlas healthy, one-shot migration успешна, web200/unauthenticated API401 |
 | Atlas owner smoke | PASS: вход, Personal/Family пустые, выход; реальные карточки не создавались |
