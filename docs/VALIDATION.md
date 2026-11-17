@@ -33,3 +33,7 @@ API-тесты покрывают IDOR/BOLA, FORCE RLS с runtime-ролью, vi
 Эти проверки не являются независимым pentest. Локальный HTTPS cookie test не подменяет реальный публичный TLS smoke. Search benchmark и локальный backup снимались до последних UI/transaction изменений; версия и данные явно указаны. Физическое мобильное устройство не проверено.
 
 После независимого review исправлены R1 (общая row lock при login/password change; два порядка реальной конкурентной транзакции проверены) и R2 (полный before/after source/verification и очистки контакта; три renderer regression PASS). 34 API tests и frontend build/lint PASS. Исправленный exact commit6de1301 APPROVED независимым reviewer; runtime повторно проверен через Compose/HTTPS.
+
+## TASK-0002 — интерфейс
+
+Frontend lint/build PASS на Node22.22.0; 8 проверок PASS (5 Chrome E2E +3 renderer). Добавлены проверки Cmd/Ctrl+K, активных скрытых фильтров, восстановления пустого результата, ширин 320/390/768/1024 и прокрутки мобильного редактора. Снимки desktop/login/details/editor/graph/Inbox/settings и mobile list/details/editor визуально проверены на синтетических данных. Backend не менялся и его тесты повторно не запускались. Физический телефон и screen reader не проверены. Independent review и доставка: ожидаются.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type cytoscape from "cytoscape";
-import { Search, Network } from "lucide-react";
+import { Search, Network, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { api, errorMessage, type Person, type Member } from "./api";
 import { Button } from "./components/ui/button";
 type Edge = {
@@ -96,6 +96,7 @@ export function Graph({
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [graphPeople, setGraphPeople] = useState<Person[]>([]);
   const mount = useRef<HTMLDivElement>(null);
   const cy = useRef<cytoscape.Core | null>(null);
   useEffect(
@@ -151,24 +152,26 @@ export function Graph({
           {
             selector: "node",
             style: {
-              "background-color": "#dbe8d6",
-              "border-color": "#688667",
+              "background-color": "#e9e5df",
+              "border-color": "#81776d",
               "border-width": 2,
               width: 40,
               height: 40,
               label: "data(label)",
               "font-family": "system-ui",
-              "font-size": 12,
+              "font-size": 11,
+              "text-wrap": "wrap",
+              "text-max-width": "115px",
               "text-valign": "bottom",
               "text-margin-y": 10,
-              color: "#273c31",
+              color: "#282827",
             },
           },
           {
             selector: "node.path",
             style: {
-              "background-color": "#c2dc73",
-              "border-color": "#447042",
+              "background-color": "#e8b294",
+              "border-color": "#9c5236",
               "border-width": 4,
             },
           },
@@ -176,7 +179,7 @@ export function Graph({
             selector: "edge",
             style: {
               width: 2,
-              "line-color": "#bbc7b7",
+              "line-color": "#c6c0b9",
               "curve-style": "bezier",
               label: "data(label)",
               "font-size": 10,
@@ -189,15 +192,27 @@ export function Graph({
             selector: "edge.directed",
             style: {
               "target-arrow-shape": "triangle",
-              "target-arrow-color": "#688667",
+              "target-arrow-color": "#81776d",
             },
           },
         ],
-        layout: { name: "cose", animate: false, nodeRepulsion: () => 10000 },
+        layout: {
+          name: "cose",
+          animate: false,
+          nodeDimensionsIncludeLabels: true,
+          nodeRepulsion: () => 120000,
+          idealEdgeLength: () => 120,
+          padding: 50,
+        },
         minZoom: 0.3,
         maxZoom: 3,
       });
+      if (cy.current.zoom() > 1) {
+        cy.current.zoom(1);
+        cy.current.center();
+      }
       cy.current.on("tap", "node", (e) => onOpen(e.target.id()));
+      setGraphPeople(result.nodes);
       setInfo(
         result.truncated
           ? "Достигнут лимит графа. Показана часть связей."
@@ -255,7 +270,66 @@ export function Graph({
           {error}
         </div>
       )}
-      <div className="graph-canvas panel" ref={mount} />
+      <div className="graph-frame">
+        <div className="graph-toolbar" aria-label="Масштаб графа">
+          <span className="muted">Карта знакомств</span>
+          <div className="inline">
+            <Button
+              variant="ghost"
+              aria-label="Уменьшить граф"
+              disabled={!graphPeople.length || busy}
+              onClick={() => {
+                if (cy.current) {
+                  cy.current.zoom(Math.max(0.3, cy.current.zoom() / 1.25));
+                  cy.current.center();
+                }
+              }}
+            >
+              <ZoomOut size={17} />
+            </Button>
+            <Button
+              variant="ghost"
+              aria-label="Увеличить граф"
+              disabled={!graphPeople.length || busy}
+              onClick={() => {
+                if (cy.current) {
+                  cy.current.zoom(Math.min(3, cy.current.zoom() * 1.25));
+                  cy.current.center();
+                }
+              }}
+            >
+              <ZoomIn size={17} />
+            </Button>
+            <Button
+              variant="ghost"
+              aria-label="Показать весь граф"
+              disabled={!graphPeople.length || busy}
+              onClick={() => {
+                cy.current?.fit(undefined, 50);
+              }}
+            >
+              <Maximize size={17} />
+            </Button>
+          </div>
+        </div>
+        <div className="graph-canvas" ref={mount} />
+      </div>
+      {graphPeople.length > 0 && (
+        <details className="graph-people">
+          <summary>Люди на графе · {graphPeople.length}</summary>
+          <div className="tags">
+            {graphPeople.map((person) => (
+              <Button
+                key={person.id}
+                variant="outline"
+                onClick={() => onOpen(person.id!)}
+              >
+                {person.display_name}
+              </Button>
+            ))}
+          </div>
+        </details>
+      )}
       <p className="muted">
         {info || "Выберите человека и нажмите «Показать связи»."}
       </p>

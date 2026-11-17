@@ -17,7 +17,8 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
-  Sprout,
+  LockKeyhole,
+  X,
 } from "lucide-react";
 import {
   api,
@@ -79,31 +80,36 @@ function Login({ onLogin }: { onLogin: () => void }) {
           Network CRM
         </div>
         <div>
-          <span className="eyebrow">ЛЮДИ, КОТОРЫХ ВЫ ЗНАЕТЕ</span>
+          <span className="eyebrow">ЛИЧНОЕ · СЕМЕЙНОЕ · ОБЩЕЕ</span>
           <h1>
-            Хорошие связи
+            Ваш круг.
             <br />
-            начинаются
-            <br />с внимания.
+            Вся история
+            <br />
+            <em>знакомств.</em>
           </h1>
           <p>
-            Помните важное. Находите общих знакомых.
+            Люди, контекст и связи — в одном месте.
             <br />
-            Поддерживайте отношения.
+            Личная записная книга для вашего круга.
           </p>
-          <div className="orbit-art" aria-hidden="true">
-            <span>А</span>
-            <i />
-            <span>М</span>
-            <i />
-            <span>Д</span>
+          <div className="relationship-art" aria-hidden="true">
+            <div className="art-rule" />
+            <span className="art-node art-node-one">01</span>
+            <span className="art-node art-node-two">
+              <Network size={28} />
+            </span>
+            <span className="art-node art-node-three">02</span>
+            <span className="art-caption">Люди. Связи. Контекст.</span>
           </div>
         </div>
-        <small>Личное остаётся личным. Общим делитесь осознанно.</small>
+        <small>
+          <LockKeyhole size={14} /> Личное пространство и отдельный круг семьи
+        </small>
       </div>
       <main className="login-main">
         <form onSubmit={submit}>
-          <span className="eyebrow">ВАШ ЛИЧНЫЙ КРУГ</span>
+          <span className="eyebrow">NETWORK CRM / ВХОД</span>
           <h2>{invite ? "Приглашение в семью" : "Рады видеть вас"}</h2>
           <p className="muted">
             {invite
@@ -192,6 +198,41 @@ export default function App() {
   const [editing, setEditing] = useState<Person | null>(null);
   const [refresh, setRefresh] = useState(0);
   const [graphRoot, setGraphRoot] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const hasFilters = Boolean(
+    city || country || profession || tag || priority || known,
+  );
+  const hasSearch = Boolean(q || hasFilters);
+  const filterCount = [city, country, profession, tag, known].filter(
+    Boolean,
+  ).length;
+  function resetSearch() {
+    setQ("");
+    setCity("");
+    setCountry("");
+    setProfession("");
+    setTag("");
+    setPriority("");
+    setKnown("");
+    setNum(1);
+  }
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "k" &&
+        user &&
+        page === "people" &&
+        !selected &&
+        !editing
+      ) {
+        event.preventDefault();
+        searchInput.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, [user, page, selected, editing]);
   const currentWorkspace = useRef(wid);
   currentWorkspace.current = wid;
   const workspace = workspaces.find((w) => w.id === wid);
@@ -306,18 +347,18 @@ export default function App() {
             className="person-cell"
             onClick={() => void open(row.original.id!)}
           >
-            <span className="avatar">
+            <span className="avatar" aria-hidden="true">
               {row.original.display_name.slice(0, 1)}
             </span>
             <span>
               <strong>{row.original.display_name}</strong>
-              <small>{row.original.profession || "Добавьте профессию"}</small>
+              <small>{row.original.profession || "Профессия не указана"}</small>
             </span>
           </button>
         ),
       },
       {
-        header: "Где",
+        header: "Местоположение",
         cell: ({ row }) => (
           <span>
             {[row.original.city, row.original.country]
@@ -371,7 +412,7 @@ export default function App() {
     [members, wid],
   );
   const table = useTable({ features: tableFeatures({}), data: items, columns });
-  if (boot) return <div className="loading-screen">Открываем ваш круг…</div>;
+  if (boot) return <div className="loading-screen">Загружаем контакты…</div>;
   if (!user || new URLSearchParams(location.hash.slice(1)).has("invite"))
     return <Login onLogin={() => void init()} />;
   return (
@@ -414,7 +455,7 @@ export default function App() {
               : "Общий круг вашей семьи"}
           </small>
         </div>
-        <nav>
+        <nav aria-label="Основная навигация">
           {[
             ["people", "Контакты", UsersRound],
             ["graph", "Граф связей", Network],
@@ -426,6 +467,7 @@ export default function App() {
               <button
                 className={page === id ? "nav-item active" : "nav-item"}
                 key={String(id)}
+                aria-current={page === id ? "page" : undefined}
                 onClick={() => {
                   setPage(String(id));
                   setSelected(null);
@@ -438,13 +480,9 @@ export default function App() {
             );
           })}
         </nav>
-        <div className="sidebar-note">
-          <Sprout size={24} />
-          <p>
-            Связи растут,
-            <br />
-            когда о них помнят.
-          </p>
+        <div className="sidebar-footer-label">
+          <LockKeyhole size={14} />
+          <span>Ваше пространство связей</span>
         </div>
         <div className="user-box">
           <div className="avatar small">{user.name.slice(0, 1)}</div>
@@ -487,6 +525,7 @@ export default function App() {
             </span>
           </span>
           <span className="privacy-dot">
+            <LockKeyhole size={13} />
             {workspace?.kind === "personal"
               ? "Личное пространство"
               : "Семейное пространство"}
@@ -502,11 +541,11 @@ export default function App() {
             <>
               <div className="page-title">
                 <div>
-                  <span className="eyebrow">ВАШИ ЛЮДИ — ВСЕГДА РЯДОМ</span>
+                  <span className="eyebrow">ЗАПИСНАЯ КНИГА</span>
                   <h1>
                     Контакты <span className="count">{total}</span>
                   </h1>
-                  <p>Найдите нужного человека. Вспомните, что вас связывает.</p>
+                  <p>Люди, которых вы знаете. Контекст, который важен.</p>
                 </div>
                 {canEdit && (
                   <Button onClick={() => setEditing(emptyPerson(user.id))}>
@@ -515,35 +554,52 @@ export default function App() {
                   </Button>
                 )}
               </div>
-              <div className="search-hero">
-                <Search size={24} />
-                <input
-                  aria-label="Поиск контактов"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Имя, город, профессия или то, что вы помните…"
-                />
-                {q ? (
-                  <button aria-label="Очистить поиск" onClick={() => setQ("")}>
-                    ×
-                  </button>
-                ) : (
-                  <kbd>Поиск по всем сведениям</kbd>
-                )}
+              <div className="list-tools">
+                <div className="search-hero">
+                  <Search size={18} />
+                  <input
+                    ref={searchInput}
+                    aria-label="Поиск контактов"
+                    aria-keyshortcuts="Control+k Meta+k"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Поиск по имени, городу, заметкам…"
+                  />
+                  {q ? (
+                    <button
+                      aria-label="Очистить поиск"
+                      onClick={() => setQ("")}
+                    >
+                      <X size={16} />
+                    </button>
+                  ) : (
+                    <kbd aria-hidden="true">⌘ / Ctrl K</kbd>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  aria-expanded={filters}
+                  aria-controls="contact-filters"
+                  onClick={() => setFilters(!filters)}
+                >
+                  <SlidersHorizontal size={16} />
+                  Фильтры{" "}
+                  {filterCount > 0 && (
+                    <span className="filter-count">{filterCount}</span>
+                  )}
+                </Button>
               </div>
               <div className="filter-toolbar">
-                <div className="inline">
-                  <Button
-                    variant={filters ? "default" : "outline"}
-                    onClick={() => setFilters(!filters)}
-                  >
-                    <SlidersHorizontal size={16} />
-                    Фильтры
-                  </Button>
+                <div
+                  className="priority-tabs"
+                  role="group"
+                  aria-label="Приоритет контактов"
+                >
                   {["", "A", "B", "C"].map((v) => (
                     <button
                       key={v}
                       className={priority === v ? "chip selected" : "chip"}
+                      aria-pressed={priority === v}
                       onClick={() => {
                         setPriority(v);
                         setNum(1);
@@ -553,12 +609,19 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <span className="muted">
-                  {loading ? "Ищем…" : `${total} контактов`}
-                </span>
+                <div className="result-tools">
+                  {hasSearch && (
+                    <button className="reset-search" onClick={resetSearch}>
+                      Сбросить <X size={13} />
+                    </button>
+                  )}
+                  <span className="muted" role="status">
+                    {loading ? "Поиск…" : `Найдено: ${total}`}
+                  </span>
+                </div>
               </div>
               {filters && (
-                <div className="filters panel">
+                <div id="contact-filters" className="filters panel">
                   {[
                     ["Город", city, setCity],
                     ["Страна", country, setCountry],
@@ -595,21 +658,26 @@ export default function App() {
                   </label>
                 </div>
               )}
-              <div className="table-panel">
+              <div className="table-panel" aria-busy={loading}>
                 {!items.length && !loading ? (
                   <div className="empty">
                     <UsersRound size={44} />
                     <h2>
-                      {q
-                        ? "Пока никого не нашли"
-                        : "Ваш круг начинается с одного человека"}
+                      {hasSearch
+                        ? "Ничего не найдено"
+                        : "Здесь будут ваши контакты"}
                     </h2>
                     <p>
-                      {q
-                        ? "Попробуйте другое слово или снимите фильтры."
+                      {hasSearch
+                        ? "Измените запрос или сбросьте фильтры."
                         : "Добавьте знакомого — достаточно одного имени."}
                     </p>
-                    {canEdit && !q && (
+                    {hasSearch && (
+                      <Button variant="outline" onClick={resetSearch}>
+                        Сбросить поиск и фильтры
+                      </Button>
+                    )}
+                    {canEdit && !hasSearch && (
                       <Button
                         variant="outline"
                         onClick={() => setEditing(emptyPerson(user.id))}
@@ -620,12 +688,17 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <table>
+                  <table aria-label="Контакты">
                     <thead>
                       {table.getHeaderGroups().map((h) => (
                         <tr key={h.id}>
                           {h.headers.map((c) => (
-                            <th key={c.id}>
+                            <th key={c.id} scope="col">
+                              {c.column.id === "open" && (
+                                <span className="sr-only">
+                                  Открыть карточку
+                                </span>
+                              )}
                               {flexRender(
                                 c.column.columnDef.header,
                                 c.getContext(),
@@ -677,10 +750,6 @@ export default function App() {
                     </Button>
                   </div>
                 </div>
-              </div>
-              <div className="footnote">
-                <span className="tiny-dot" />
-                Каждое знакомство — это новая возможность.
               </div>
             </>
           )}
