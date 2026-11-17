@@ -8,19 +8,60 @@ import { resolve } from "node:path";
 const advisory = "https://github.com/advisories/GHSA-fc5q-39xc-vjpf";
 const expires = "2026-12-17";
 
+const isRecord = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const levels = ["info", "low", "moderate", "high", "critical"];
+
+export function validateReport(report) {
+  if (
+    !isRecord(report) ||
+    report.error !== undefined ||
+    report.auditReportVersion !== 2 ||
+    !isRecord(report.metadata) ||
+    !isRecord(report.metadata.vulnerabilities) ||
+    !isRecord(report.vulnerabilities)
+  )
+    throw new Error("Incomplete audit report");
+  const counts = report.metadata.vulnerabilities;
+  for (const key of [...levels, "total"])
+    if (!Number.isSafeInteger(counts[key]) || counts[key] < 0)
+      throw new Error("Invalid audit counters");
+  const actual = Object.fromEntries(levels.map((level) => [level, 0]));
+  for (const finding of Object.values(report.vulnerabilities)) {
+    if (
+      !isRecord(finding) ||
+      !levels.includes(finding.severity) ||
+      !Array.isArray(finding.nodes) ||
+      !finding.nodes.length ||
+      !finding.nodes.every((n) => typeof n === "string" && n.length) ||
+      !Array.isArray(finding.via) ||
+      !finding.via.length ||
+      !finding.via.every((v) =>
+        typeof v === "string"
+          ? v.length > 0
+          : isRecord(v) &&
+            typeof v.name === "string" &&
+            typeof v.url === "string",
+      )
+    )
+      throw new Error("Invalid audit finding");
+    actual[finding.severity]++;
+  }
+  if (
+    levels.some((level) => counts[level] !== actual[level]) ||
+    counts.total !== Object.keys(report.vulnerabilities).length
+  )
+    throw new Error("Audit summary and findings disagree");
+}
+
 export function assess(
   report,
   lock,
   date = new Date().toISOString().slice(0, 10),
 ) {
-  if (
-    report?.error ||
-    report?.auditReportVersion !== 2 ||
-    !report?.metadata?.vulnerabilities ||
-    !report.vulnerabilities ||
-    !lock?.packages
-  )
-    throw new Error("Incomplete audit/lockfile report");
+  validateReport(report);
+  if (!isRecord(lock) || !isRecord(lock.packages))
+    throw new Error("Invalid lockfile");
   const findings = report.vulnerabilities;
   const exceptions = [],
     blocked = [];
@@ -73,12 +114,7 @@ function audit(directory, args) {
   if (result.error || ![0, 1].includes(result.status))
     throw new Error("npm audit execution failed");
   const report = JSON.parse(result.stdout);
-  if (
-    report.error ||
-    report.auditReportVersion !== 2 ||
-    !report.metadata?.vulnerabilities
-  )
-    throw new Error("npm audit returned an error or incomplete report");
+  validateReport(report);
   return report;
 }
 

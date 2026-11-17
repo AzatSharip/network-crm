@@ -6,7 +6,16 @@ function fixture() {
   return {
     report: {
       auditReportVersion: 2,
-      metadata: { vulnerabilities: { high: 2, critical: 0 } },
+      metadata: {
+        vulnerabilities: {
+          info: 0,
+          low: 0,
+          moderate: 0,
+          high: 2,
+          critical: 0,
+          total: 2,
+        },
+      },
       vulnerabilities: {
         picomatch: {
           severity: "high",
@@ -72,7 +81,16 @@ test("clean report needs no exception", () => {
     assess(
       {
         auditReportVersion: 2,
-        metadata: { vulnerabilities: { high: 0, critical: 0 } },
+        metadata: {
+          vulnerabilities: {
+            info: 0,
+            low: 0,
+            moderate: 0,
+            high: 0,
+            critical: 0,
+            total: 0,
+          },
+        },
         vulnerabilities: {},
       },
       { packages: {} },
@@ -80,4 +98,63 @@ test("clean report needs no exception", () => {
     ).exceptions,
     [],
   );
+});
+
+test("real main rejects malformed runtime/full reports before policy decisions", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const entry = new URL("../audit-frontend.mjs", import.meta.url).href;
+  const clean = {
+    auditReportVersion: 2,
+    metadata: {
+      vulnerabilities: {
+        info: 0,
+        low: 0,
+        moderate: 0,
+        high: 0,
+        critical: 0,
+        total: 0,
+      },
+    },
+    vulnerabilities: {},
+  };
+  const missing = { auditReportVersion: 2, metadata: { vulnerabilities: {} } };
+  const inconsistent = {
+    ...clean,
+    vulnerabilities: {
+      bad: {
+        severity: "critical",
+        nodes: ["node_modules/bad"],
+        via: [{ name: "bad", url: "https://example.invalid/advisory" }],
+      },
+    },
+  };
+  const array = { ...clean, vulnerabilities: [] };
+  const invalidCounter = {
+    ...clean,
+    metadata: {
+      vulnerabilities: { ...clean.metadata.vulnerabilities, high: -1 },
+    },
+  };
+  for (const [runtime, full, status] of [
+    [clean, clean, 0],
+    [missing, clean, 1],
+    [inconsistent, clean, 1],
+    [clean, array, 1],
+    [invalidCounter, clean, 1],
+  ]) {
+    const reports = [runtime, full];
+    const code = `import cp from 'node:child_process';
+      import {syncBuiltinESMExports} from 'node:module';
+      const reports=${JSON.stringify(reports)};
+      cp.spawnSync=()=>({status:0,stdout:JSON.stringify(reports.shift())});
+      syncBuiltinESMExports();
+      const {main}=await import(${JSON.stringify(entry)});
+      main();`;
+    const result = spawnSync(
+      process.execPath,
+      ["--input-type=module", "-e", code],
+      { encoding: "utf8", timeout: 10000 },
+    );
+    assert.equal(result.status, status, result.stdout + result.stderr);
+  }
 });
