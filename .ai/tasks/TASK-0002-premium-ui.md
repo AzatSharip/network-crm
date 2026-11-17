@@ -1,12 +1,12 @@
 # TASK-0002 — Premium interface
 
 Type: implementation
-Status: review
+Status: in_progress
 Integration branch: main
 Task branch: codex/premium-ui
 Integration base: 2b56ab1
 Review gate: required
-Review status: pending
+Review status: approved
 
 Redesign the existing Russian Personal/Family CRM with a coherent, restrained visual system. User requested reference research and implementation, with sequential work and minimal agent overhead.
 
@@ -18,6 +18,6 @@ References: Attio official record/table UI (https://attio.com/help/reference/att
 
 Validation: frontend lint/build PASS (Node22.22.0); 8 frontend checks PASS (5 Chrome E2E +3 renderer). Desktop/login/details/editor/graph/Inbox/settings and mobile list/details/editor screenshots visually inspected with synthetic data; animation-disabled snapshots used. No backend/dependency changes. Physical mobile/screen reader not tested.
 
-Independent review: `.ai/reviews/TASK-0002/review.md`, exact implementation `5cc703bdef2947d5310a39ea20c0338c4925b1bb`, CHANGES_REQUIRED. U1: full-fit graph clips labels at320px/80nodes; U2: small table text contrast4.329/4.392<4.5. Reviewer reproduced8/8 frontend tests and lint/build PASS; no integration.
+Independent review: APPROVED exact implementation `275a7ea62b291bea5335b98fdb3123fc214e8853`; `.ai/reviews/TASK-0002/review.md`. U1/U2 CLOSED. Locally FF-integrated into main at `45c2303036ed068c022a574af2ff52f79cc4bf0e`; integrated tree identical to approved SHA except review metadata. Deployment/publish pending parent delivery, so task remains in_progress.
 
-U1/U2 addressed: minZoom/zoom-out floor0.01, fit resizes canvas before fitting; darker profession/header text. New bounded80-node320px rendered-bounds and computed contrast regression PASS; lint/build PASS. Awaiting delta review.
+Reviewer evidence: previous8/8 frontend checks+lint/build PASS; current independent synthetic browser probe PASS for80-node320px fit and computed default/hover/header contrast. Current real-API targeted test blocked by demo login429 (no reset); implementer targeted/lint/build PASS reported. No backend/dependency/auth changes.
