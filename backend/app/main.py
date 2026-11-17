@@ -34,6 +34,7 @@ from .schemas import (
     InviteAccept,
     InviteIn,
     Login,
+    PasswordChange,
     PersonIn,
     PersonPatch,
     RelationshipIn,
@@ -139,7 +140,7 @@ async def validation_error(request, exc):
 
 
 @app.get("/healthz")
-def health(db: Session = Depends(get_db)):
+def health(db: Session = Depends(get_db, scope="function")):
     db.execute(text("SELECT 1"))
     return {"status": "ok"}
 
@@ -150,7 +151,12 @@ def schema(who: Principal = Depends(principal)):
 
 
 @app.post(PREFIX + "/auth/login")
-def login(data: Login, request: Request, response: Response, db: Session = Depends(get_db)):
+def login(
+    data: Login,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db, scope="function"),
+):
     email = str(data.email).lower()
     limit_login(request, email)
     user = db.scalar(select(User).where(User.email == email))
@@ -186,7 +192,7 @@ def logout(
     request: Request,
     response: Response,
     who: Principal = Depends(principal),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ):
     db.execute(
         delete(SessionToken).where(
@@ -204,7 +210,9 @@ def me(who: Principal = Depends(principal)):
 
 
 @app.get(PREFIX + "/workspaces")
-def workspaces(who: Principal = Depends(principal), db: Session = Depends(get_db)):
+def workspaces(
+    who: Principal = Depends(principal), db: Session = Depends(get_db, scope="function")
+):
     return [
         {"id": str(w.id), "name": w.name, "kind": w.kind, "role": m.role}
         for w, m in db.execute(
@@ -218,7 +226,9 @@ def workspaces(who: Principal = Depends(principal), db: Session = Depends(get_db
 
 @app.post(PREFIX + "/workspaces", status_code=201)
 def create_workspace(
-    data: WorkspaceIn, who: Principal = Depends(principal), db: Session = Depends(get_db)
+    data: WorkspaceIn,
+    who: Principal = Depends(principal),
+    db: Session = Depends(get_db, scope="function"),
 ):
     w = Workspace(name=data.name, kind="family", owner_id=who.user.id)
     db.add(w)
@@ -260,7 +270,7 @@ def invite(data: InviteIn, ctx: Context = Depends(context)):
 
 
 @app.post(PREFIX + "/invitations/accept")
-def accept(data: InviteAccept, request: Request, db: Session = Depends(get_db)):
+def accept(data: InviteAccept, request: Request, db: Session = Depends(get_db, scope="function")):
     limit_login(request, "invite:" + digest(data.token))
     inv = db.scalar(
         select(Invitation).where(Invitation.token_hash == digest(data.token)).with_for_update()
@@ -630,6 +640,11 @@ def suggest(data: SuggestionIn, ctx: Context = Depends(context)):
         if p.version != data.expected_version:
             fail(409, "Версия карточки изменилась")
         before = serialize(ctx, p)
+        for key in ("id", "version", "updated_at", "workspace_id"):
+            before.pop(key, None)
+        before["contacts"] = [
+            {k: v for k, v in c.items() if k != "normalized_value"} for c in before["contacts"]
+        ]
         PersonIn.model_validate(data.payload)
     elif data.operation == "create_person":
         if data.target_id or data.expected_version is not None:
@@ -804,8 +819,33 @@ def audits(ctx: Context = Depends(context), page: int = Query(1, ge=1)):
 
 @app.post(PREFIX + "/auth/revoke-all")
 def revoke_sessions(
-    response: Response, who: Principal = Depends(principal), db: Session = Depends(get_db)
+    response: Response,
+    who: Principal = Depends(principal),
+    db: Session = Depends(get_db, scope="function"),
 ):
+    db.execute(delete(SessionToken).where(SessionToken.user_id == who.user.id))
+    response.delete_cookie(COOKIE, path="/", secure=SECURE, httponly=True, samesite="strict")
+    response.delete_cookie("crm_csrf", path="/", secure=SECURE, samesite="strict")
+    return {"ok": True}
+
+
+@app.post(PREFIX + "/auth/password")
+def change_password(
+    data: PasswordChange,
+    request: Request,
+    response: Response,
+    who: Principal = Depends(principal),
+    db: Session = Depends(get_db, scope="function"),
+):
+    limit_login(request, who.user.email)
+    if not verify(data.current_password, who.user.password_hash):
+        fail(401, "Неверный текущий пароль")
+    locked = db.scalar(select(User).where(User.id == who.user.id).with_for_update())
+    # Recheck after lock to prevent two concurrent password changes from racing.
+    db.refresh(locked)
+    if not verify(data.current_password, locked.password_hash):
+        fail(409, "Пароль уже изменён")
+    locked.password_hash = hasher.hash(data.new_password)
     db.execute(delete(SessionToken).where(SessionToken.user_id == who.user.id))
     response.delete_cookie(COOKIE, path="/", secure=SECURE, httponly=True, samesite="strict")
     response.delete_cookie("crm_csrf", path="/", secure=SECURE, samesite="strict")

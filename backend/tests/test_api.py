@@ -8,7 +8,7 @@ from app.models import Invitation, now
 from app.security import ORIGIN
 from conftest import PASSWORD, admin, create
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -362,18 +362,120 @@ def test_identifier_search_does_not_match_common_domain(setup):
 
 
 def test_ai_preview_includes_cleared_fields(setup):
-    c=setup['clients'][0];b=base(setup)
-    p=create(c,setup['family'],notes='Сведения, которые нельзя скрытно удалить',contacts=[{'platform':'email','kind':'email','value':'preview@example.com'}]).json()
-    src=c.post(b+'/sources',json={'name':'Preview fixture'}).json()
-    suggestion={'operation':'update_person','target_id':p['id'],'expected_version':1,'source_id':src['id'],'payload':{'display_name':'Изменение'},'confidence':70,'job_key':'preview','record_key':'1'}
-    assert c.post(b+'/suggestions',json=suggestion).status_code==201
-    preview=c.get(b+'/suggestions').json()[0]
-    assert preview['before']['notes'] and preview['payload']['notes']==''
-    assert preview['before']['contacts'] and preview['payload']['contacts']==[]
-    assert c.post(b+'/suggestions',json=suggestion).json()['id']==preview['id']
+    c = setup["clients"][0]
+    b = base(setup)
+    p = create(
+        c,
+        setup["family"],
+        notes="Сведения, которые нельзя скрытно удалить",
+        contacts=[{"platform": "email", "kind": "email", "value": "preview@example.com"}],
+    ).json()
+    src = c.post(b + "/sources", json={"name": "Preview fixture"}).json()
+    suggestion = {
+        "operation": "update_person",
+        "target_id": p["id"],
+        "expected_version": 1,
+        "source_id": src["id"],
+        "payload": {"display_name": "Изменение"},
+        "confidence": 70,
+        "job_key": "preview",
+        "record_key": "1",
+    }
+    assert c.post(b + "/suggestions", json=suggestion).status_code == 201
+    preview = c.get(b + "/suggestions").json()[0]
+    assert preview["before"]["notes"] and preview["payload"]["notes"] == ""
+    assert preview["before"]["contacts"] and preview["payload"]["contacts"] == []
+    assert c.post(b + "/suggestions", json=suggestion).json()["id"] == preview["id"]
 
 
 def test_phone_duplicates_across_platforms(setup):
-    c=setup['clients'][0]
-    assert create(c,setup['family'],contacts=[{'platform':'phone','kind':'phone','value':'+70000000001'}]).status_code==201
-    assert create(c,setup['family'],contacts=[{'platform':'whatsapp','kind':'phone','value':'+70000000001'}]).status_code==409
+    c = setup["clients"][0]
+    assert (
+        create(
+            c,
+            setup["family"],
+            contacts=[{"platform": "phone", "kind": "phone", "value": "+70000000001"}],
+        ).status_code
+        == 201
+    )
+    assert (
+        create(
+            c,
+            setup["family"],
+            contacts=[{"platform": "whatsapp", "kind": "phone", "value": "+70000000001"}],
+        ).status_code
+        == 409
+    )
+
+
+def test_secure_cookie_configuration(setup):
+    import os
+    import subprocess
+    import sys
+
+    script = """
+from fastapi.testclient import TestClient
+from app.main import app
+from app.security import ORIGIN
+client=TestClient(app,base_url=ORIGIN,headers={'Origin':ORIGIN})
+r=client.post('/api/v1/auth/login',json={'email':'user0@example.com','password':'Synthetic-Only-Password-42!'})
+assert r.status_code==200
+cookies=r.headers.get_list('set-cookie')
+assert any('__Host-crm_session=' in c and 'Secure' in c and 'HttpOnly' in c and 'SameSite=strict' in c and 'Path=/' in c for c in cookies)
+assert client.get('/api/v1/me').status_code==200
+client.headers['X-CSRF-Token']=client.cookies['crm_csrf']
+assert client.post('/api/v1/auth/logout').status_code==200
+assert client.get('/api/v1/me').status_code==401
+"""
+    subprocess.run(
+        [sys.executable, "-c", script],
+        env={**os.environ, "APP_ORIGIN": "https://crm.example.invalid"},
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_password_change_revokes_sessions(setup):
+    c = setup["clients"][0]
+    other = TestClient(app, headers={"Origin": ORIGIN})
+    assert (
+        other.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": PASSWORD}
+        ).status_code
+        == 200
+    )
+    new = "Synthetic-new-password-123!"
+    assert (
+        c.post(
+            "/api/v1/auth/password", json={"current_password": PASSWORD, "new_password": new}
+        ).status_code
+        == 200
+    )
+    assert c.get("/api/v1/me").status_code == 401
+    assert other.get("/api/v1/me").status_code == 401
+    assert (
+        other.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": PASSWORD}
+        ).status_code
+        == 401
+    )
+    assert (
+        other.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": new}
+        ).status_code
+        == 200
+    )
+
+
+def test_commit_failure_cannot_return_success(setup, monkeypatch):
+    from app.models import Source
+    from sqlalchemy.exc import IntegrityError
+
+    def failed_commit(self):
+        raise IntegrityError("synthetic commit failure", {}, Exception("synthetic"))
+
+    monkeypatch.setattr(Session, "commit", failed_commit)
+    response = setup["clients"][0].post(base(setup) + "/sources", json={"name": "Must rollback"})
+    assert response.status_code == 409
+    with Session(admin) as db:
+        assert db.scalar(select(Source.id).where(Source.name == "Must rollback")) is None

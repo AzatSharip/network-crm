@@ -7,6 +7,7 @@
 | Метод и путь | Действие |
 |---|---|
 | POST /auth/login, /auth/logout, /auth/revoke-all | Вход, выход, отзыв всех своих сессий |
+| POST /auth/password | current_password + new_password (12–256 символов), отзывает все сессии |
 | GET /me | Текущий пользователь |
 | GET/POST /workspaces | Доступные пространства / создать Family |
 | GET /workspaces/{w}/members | Участники |

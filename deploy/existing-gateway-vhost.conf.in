@@ -1,0 +1,27 @@
+# Add inside the existing gateway's http block only after independent review/approval.
+# No existing server blocks, ports, networks or upstreams should be changed.
+server {
+    listen 8443 ssl;
+    server_name __CRM_HOSTNAME__;
+    ssl_certificate __CRM_TLS_DIRECTORY__/fullchain.pem;
+    ssl_certificate_key __CRM_TLS_DIRECTORY__/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_tickets off;
+    client_max_body_size 256k;
+    client_body_timeout 15s;
+    error_page 497 =308 https://__CRM_HOSTNAME__:8443$request_uri;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    access_log off;
+    location / {
+        proxy_pass http://unix:__CRM_SOCKET__;
+        proxy_set_header Host __CRM_HOSTNAME__:8443;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For "";
+        proxy_set_header Forwarded "";
+        proxy_http_version 1.1;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+}

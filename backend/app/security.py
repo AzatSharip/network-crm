@@ -43,7 +43,7 @@ class Principal:
     agent_workspace: UUID | None = None
 
 
-def principal(request: Request, db: Session = Depends(get_db)) -> Principal:
+def principal(request: Request, db: Session = Depends(get_db, scope="function")) -> Principal:
     authorization = request.headers.get("authorization", "")
     if authorization.startswith("Bearer "):
         # Tokens are separately constrained to a workspace. No contact data read is allowed.
@@ -90,7 +90,9 @@ class Context:
 
 
 def context(
-    workspace_id: UUID, who: Principal = Depends(principal), db: Session = Depends(get_db)
+    workspace_id: UUID,
+    who: Principal = Depends(principal),
+    db: Session = Depends(get_db, scope="function"),
 ) -> Context:
     if who.agent_workspace and who.agent_workspace != workspace_id:
         fail()

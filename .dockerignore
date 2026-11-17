@@ -7,3 +7,8 @@
 **/.pytest_cache
 **/dist
 docs
+
+**/._*
+**/.DS_Store
+**/test-results
+**/*.tsbuildinfo

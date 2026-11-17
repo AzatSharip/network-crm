@@ -162,3 +162,12 @@ class SuggestionIn(Strict):
 class AgentIn(Strict):
     name: str = Field(min_length=1, max_length=120)
     days: int = Field(default=30, ge=1, le=90)
+
+
+class PasswordChange(Strict):
+    current_password: Annotated[str, StringConstraints(strip_whitespace=False)] = Field(
+        min_length=1, max_length=256
+    )
+    new_password: Annotated[str, StringConstraints(strip_whitespace=False)] = Field(
+        min_length=12, max_length=256
+    )

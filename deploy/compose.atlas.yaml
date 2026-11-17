@@ -1,0 +1,14 @@
+# Private Unix-socket backend for an existing HTTPS gateway; no change to its routes.
+services:
+  web:
+    entrypoint: [/bin/sh, -c, "umask 007; exec nginx -g 'daemon off;'"]
+    volumes:
+      - type: bind
+        source: ${CRM_SOCKET_DIR:?set a dedicated private socket directory}
+        target: /crm-socket
+        bind: {create_host_path: false}
+      - type: bind
+        source: ./deploy/nginx-atlas.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind: {create_host_path: false}

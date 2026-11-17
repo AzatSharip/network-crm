@@ -1,17 +1,10 @@
 # Local development/tests ONLY. Never use on an internet-facing interface.
 services:
   db:
-    build:
-      args:
-        POSTGRES_IMAGE: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
     ports: ['127.0.0.1:18432:5432']
   api:
     platform: linux/amd64
-    build:
-      args: {PYTHON_IMAGE: "python:3.12-slim"}
   migrate:
     platform: linux/amd64
-    build:
-      args: {PYTHON_IMAGE: "python:3.12-slim"}
 networks:
   database: {internal: false}

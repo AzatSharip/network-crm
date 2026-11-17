@@ -34,6 +34,14 @@ jobs:
       - run: pip-audit -r backend/requirements.txt
       - run: npm ci && npm run build && npm audit --audit-level=high
         working-directory: frontend
+      - name: Browser scenarios against real API and PostgreSQL
+        run: |
+          python -m alembic -c backend/alembic.ini upgrade head
+          CRM_SEED_SYNTHETIC=yes python scripts/seed-demo.py
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log > "$RUNNER_TEMP/crm-api.log" 2>&1 &
+          npm --prefix frontend run dev -- --port 8080 > "$RUNNER_TEMP/crm-web.log" 2>&1 &
+          frontend/node_modules/.bin/playwright install --with-deps chromium
+          python scripts/run-e2e.py
       - run: python scripts/check-repository.py
       - name: Scan complete commit history with Gitleaks
         run: |

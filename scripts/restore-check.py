@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify encrypted dump by restoring to a new isolated database; never overwrite live DB."""
 
+import hashlib
 import json
 import os
 import subprocess
@@ -49,8 +50,26 @@ try:
     if counts["migration"] != "0001":
         raise SystemExit("Unexpected schema revision")
     receipt = backup.with_suffix(backup.suffix + ".verified.json")
-    receipt.write_text(json.dumps({"restored": True, "counts": counts}, indent=2) + "\n")
+    receipt.write_text(
+        json.dumps(
+            {
+                "restored": True,
+                "counts": counts,
+                "sha256": hashlib.file_digest(backup.open("rb"), "sha256").hexdigest(),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     receipt.chmod(0o600)
-    print(json.dumps({"restored": True, "counts": counts}))
+    print(
+        json.dumps(
+            {
+                "restored": True,
+                "counts": counts,
+                "sha256": hashlib.file_digest(backup.open("rb"), "sha256").hexdigest(),
+            }
+        )
+    )
 finally:
     subprocess.run(compose + ["dropdb", "-U", "crm_migrator", "--if-exists", name], check=True)

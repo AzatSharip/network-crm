@@ -1,1 +1,35 @@
-{"name":"network-crm","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"tsc -b && vite build","test":"playwright test","lint":"tsc -b"},"dependencies":{"@radix-ui/react-dialog":"1.3.1","@tanstack/react-table":"9.3.1","class-variance-authority":"0.7.1","clsx":"2.1.1","cytoscape":"3.35.0","lucide-react":"1.74.0","react":"19.3.1","react-dom":"19.3.1","tailwind-merge":"3.7.0"},"devDependencies":{"@playwright/test":"1.65.1","@tailwindcss/vite":"4.3.5","@types/cytoscape":"3.21.9","@types/react":"19.3.0","@types/react-dom":"19.3.0","@vitejs/plugin-react":"6.3.0","tailwindcss":"4.3.5","typescript":"7.0.2","vite":"8.3.8"}}
+{
+  "name": "network-crm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "playwright test",
+    "lint": "tsc -b && prettier --check src tests"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "1.3.1",
+    "@tanstack/react-table": "9.3.1",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cytoscape": "3.35.0",
+    "lucide-react": "1.74.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/cytoscape": "3.21.9",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "prettier": "3.10.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  }
+}

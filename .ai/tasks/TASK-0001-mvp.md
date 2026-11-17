@@ -1,6 +1,6 @@
 # TASK-0001 — Network CRM MVP
 Type: implementation
-Status: in_progress
+Status: review
 Integration branch: main
 Task branch: codex/mvp
 Review gate: required

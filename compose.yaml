@@ -50,7 +50,7 @@ services:
     ports: ['127.0.0.1:${HTTP_PORT:-8080}:8080']
     depends_on:
       api: {condition: service_healthy}
-    networks: [web]
+    networks: [web, edge]
     restart: unless-stopped
     read_only: true
     tmpfs: [/tmp, /var/cache/nginx, /var/run]
@@ -63,6 +63,7 @@ services:
       retries: 5
 networks:
   database: {internal: true}
-  web: {}
+  web: {internal: true}
+  edge: {}
 volumes:
   pgdata: {}

@@ -29,6 +29,13 @@ try:
         check=True,
     )
     result = subprocess.run([sys.executable, "-m", "pytest", "-q", *sys.argv[1:]], env=env)
+    if result.returncode == 0:
+        for command in [["check"], ["downgrade", "base"], ["upgrade", "head"]]:
+            subprocess.run(
+                [sys.executable, "-m", "alembic", "-c", "backend/alembic.ini", *command],
+                env=env,
+                check=True,
+            )
     raise SystemExit(result.returncode)
 finally:
     with admin.connect() as c:

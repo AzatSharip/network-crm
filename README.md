@@ -27,8 +27,8 @@ Python 3.12+, Node 22.12+ (CI закреплён на 22.23.5), PostgreSQL 18 с
 ```sh
 python -m alembic -c backend/alembic.ini upgrade head
 python scripts/test.py
-ruff check backend scripts
-ruff format --check backend scripts
+ruff check backend scripts deploy/*.py
+ruff format --check backend scripts deploy/*.py
 pip-audit -r backend/requirements.txt
 cd frontend
 npm run build
@@ -37,7 +37,7 @@ npm audit --audit-level=high
 
 Для браузерных тестов укажите CRM_E2E_URL, CRM_E2E_EMAIL и CRM_E2E_PASSWORD **синтетического** аккаунта и выполните `npm test` в frontend. Используется установленный Chrome. `scripts/seed-demo.py` создаёт вымышленные контакты только в пустой БД и только с CRM_SEED_SYNTHETIC=yes; случайный пароль записывается вне Git. `scripts/benchmark.py` создаёт отдельную БД с 10k вымышленных карточек, снимает метрики и удаляет её.
 
-`deploy/compose.test.yaml` — исключительно локальный override: порт PostgreSQL на loopback, cached PostgreSQL18.6 и локальные параметры образов. Production-конфигурация использует18.7. `scripts/local-env.py` — вспомогательный загрузчик приватного env текущего Mac; для других машин используйте явные переменные окружения.
+`deploy/compose.test.yaml` — исключительно локальный override: порт PostgreSQL на loopback, PostgreSQL18.7 и локальные параметры образов. Production-конфигурация также использует18.7. `scripts/local-env.py` — вспомогательный загрузчик приватного env текущего Mac; для других машин используйте явные переменные окружения.
 
 ## Документация
 
