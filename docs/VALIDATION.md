@@ -15,12 +15,14 @@
 | Atlas encrypted backup/restore | PASS: 0 persons/2 workspaces/0 suggestions, migration0001; ежедневный timer enabled |
 | Off-host копия | PASS: копия на Mac, совпадение SHA-256 с restore receipt, расшифровка независимым ключом |
 | pip-audit / npm audit | PASS: без известных уязвимостей на момент проверки |
-| Gitleaks tree/staged/history | PASS staged; history/tree проверяются на финальном commit |
+| Gitleaks tree/staged/history | PASS staged/tree/all-history на implementation750f7f1; ручной поиск private identifiers без совпадений |
 | Full Docker Compose | PASS: local и Atlas healthy, one-shot migration успешна, web200/unauthenticated API401 |
 | Atlas owner smoke | PASS: вход, Personal/Family пустые, выход; реальные карточки не создавались |
 | Существующие сервисы Atlas | PASS: 23 контейнера сохранили StartedAt/status/health; shared ingress unchanged |
 | HTTPS candidate | PASS: доверенный отдельный сертификат; nginx -t на конкретном добавочном vhost; public route ещё не применён |
-| Real public HTTPS login / renewal | Публичный маршрут ещё не применён; certbot dry-run выполняется |
+| HTTPS staging / renewal | PASS: trusted TLS/308/HSTS, owner login, Secure __Host cookie, CSRF/Origin, logout через отдельный loopback gateway; certbot dry-run PASS, timer enabled/active |
+| Public HTTPS | NOT ENABLED: shared gateway config не применён |
+| Порты DB/API/frontend | LAN connection refused, external IP timeout; Docker bindings/internal networks проверены |
 | Independent exact-commit review | PENDING |
 
 API-тесты покрывают IDOR/BOLA, FORCE RLS с runtime-ролью, viewer/editor, CSRF/Origin, logout/revoke-all/password change, Secure/__Host cookies в HTTPS-режиме, rate/body limits, небезопасные URL, Telegram ID, cross-platform phone/email duplicate warning, idempotency, optimistic versions, направленный bounded graph, expiring one-use invitations, limited/revoked agent tokens, conflict rollback, preview удаляемых AI-полей. Отдельный regression проверяет, что ошибка commit возвращает ошибку HTTP и откатывает карточку до отправки успешного ответа.

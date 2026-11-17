@@ -17,7 +17,7 @@ Atlas: первоначально только read-only audit ресурсов,
 
 ## Изолированное подключение к существующему gateway
 
-`deploy/compose.atlas.yaml` добавляет отдельный Unix socket frontend; каталог задаётся CRM_SOCKET_DIR, должен существовать заранее, UID/GID101,0750. Frontend имеет RW mount только этого собственного каталога; API и БД не получают доступ к нему. Socket создаётся с umask007. HTTP host port остаётся loopback для приватного smoke.
+`deploy/compose.atlas.yaml` добавляет отдельный Unix socket frontend; каталог задаётся CRM_SOCKET_DIR, должен существовать заранее, UID/GID101,0750. Frontend имеет RW mount только этого собственного каталога; API и БД не получают доступ к нему. Nginx выставляет socket0666; доступ ограничен родительским каталогом0750, UID/GID101 и точечными mounts. HTTP host port остаётся loopback для приватного smoke.
 
 `existing-gateway-vhost.conf.in` — добавочный TLS server block, не замена действующего proxy. Его применение к общей точке входа требует проверки точного diff, существующих маршрутов, nginx -t и разрешения владельца до изменения live-конфигурации. Параметры hostname/certificate/socket заполняются в приватном deployment-пакете. Не менять действующий listener, сети, firewall или чужие upstream. Сначала отдельный backup существующего config, после reload — проверки старых сервисов и откат только нового изменения при регрессии.
 
