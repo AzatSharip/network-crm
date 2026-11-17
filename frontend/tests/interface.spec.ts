@@ -185,6 +185,7 @@ test("80-person graph fits the narrowest viewport and table text stays readable"
   await expect(
     page.getByRole("button", { name: "Открыть Александр Тестов", exact: true }),
   ).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.locator(".person-cell").first().hover();
   const contrast = await page.evaluate(() => {
     function luminance(rgb: string) {
