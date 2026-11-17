@@ -174,3 +174,96 @@ test("narrow screens preserve contact actions and editor scroll", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("80-person graph fits the narrowest viewport and table text stays readable", async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByLabel("Рабочее пространство")
+    .selectOption({ label: "◎ Семья" });
+  await expect(
+    page.getByRole("button", { name: "Открыть Александр Тестов", exact: true }),
+  ).toBeVisible();
+  await page.locator(".person-cell").first().hover();
+  const contrast = await page.evaluate(() => {
+    function luminance(rgb: string) {
+      const values = rgb
+        .match(/[\d.]+/g)!
+        .slice(0, 3)
+        .map(Number)
+        .map((v) => {
+          const c = v / 255;
+          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+      return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
+    }
+    const header = getComputedStyle(document.querySelector("th")!);
+    const profession = getComputedStyle(
+      document.querySelector(".person-cell small")!,
+    );
+    const panel = getComputedStyle(document.querySelector(".table-panel")!);
+    const hoveredRow = getComputedStyle(document.querySelector("tbody tr")!);
+    return [
+      (luminance(header.backgroundColor) + 0.05) /
+        (luminance(header.color) + 0.05),
+      (luminance(panel.backgroundColor) + 0.05) /
+        (luminance(profession.color) + 0.05),
+      (luminance(hoveredRow.backgroundColor) + 0.05) /
+        (luminance(profession.color) + 0.05),
+    ];
+  });
+  for (const ratio of contrast) expect(ratio).toBeGreaterThanOrEqual(4.5);
+  await page
+    .getByRole("button", { name: "Открыть Александр Тестов", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Открыть граф", exact: true }).click();
+  await expect(page.getByLabel("От кого", { exact: true })).not.toHaveValue("");
+  const root = await page.getByLabel("От кого", { exact: true }).inputValue();
+  await page.route("**/graph?*", async (route) => {
+    const nodes = Array.from({ length: 80 }, (_, i) => ({
+      id: i ? `00000000-0000-4000-8000-${String(i).padStart(12, "0")}` : root,
+      display_name: `Тестовый участник ${i}`,
+      connections: [],
+    }));
+    const edges = nodes.slice(1).map((p, i) => ({
+      id: `edge-${i}`,
+      from_person_id: root,
+      to_person_id: p.id,
+      type: "Знакомые",
+      directed: false,
+    }));
+    await route.fulfill({ json: { nodes, edges, path: [], truncated: false } });
+  });
+  await page
+    .getByRole("button", { name: "Показать связи", exact: true })
+    .click();
+  await expect(
+    page.getByText("Люди на графе · 80", { exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page
+    .getByRole("button", { name: "Показать весь граф", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page.locator(".graph-canvas").evaluate((el) => {
+        // Cytoscape's container registration: observe rendered bounds, never alter layout.
+        const cy = (
+          el as HTMLElement & { _cyreg: { cy: import("cytoscape").Core } }
+        )._cyreg.cy;
+        const box = cy.elements().renderedBoundingBox();
+        return (
+          box.x1 >= -1 &&
+          box.y1 >= -1 &&
+          box.x2 <= cy.width() + 1 &&
+          box.y2 <= cy.height() + 1
+        );
+      }),
+    )
+    .toBeTruthy();
+  await page.locator(".graph-frame").screenshot({
+    path: "../.ai/scratch/ui-graph-80-mobile.png",
+    animations: "disabled",
+  });
+});

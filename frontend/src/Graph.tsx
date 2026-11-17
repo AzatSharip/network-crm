@@ -204,7 +204,7 @@ export function Graph({
           idealEdgeLength: () => 120,
           padding: 50,
         },
-        minZoom: 0.3,
+        minZoom: 0.01,
         maxZoom: 3,
       });
       if (cy.current.zoom() > 1) {
@@ -280,7 +280,7 @@ export function Graph({
               disabled={!graphPeople.length || busy}
               onClick={() => {
                 if (cy.current) {
-                  cy.current.zoom(Math.max(0.3, cy.current.zoom() / 1.25));
+                  cy.current.zoom(Math.max(0.01, cy.current.zoom() / 1.25));
                   cy.current.center();
                 }
               }}
@@ -305,7 +305,7 @@ export function Graph({
               aria-label="Показать весь граф"
               disabled={!graphPeople.length || busy}
               onClick={() => {
-                cy.current?.fit(undefined, 50);
+                cy.current?.resize().fit(undefined, 50);
               }}
             >
               <Maximize size={17} />

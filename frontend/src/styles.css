@@ -594,7 +594,7 @@ table {
 th {
   font-size: 10px;
   letter-spacing: 0.15px;
-  color: #73766b;
+  color: #696d63;
   font-weight: 500;
   padding: 14px 18px;
   background: #f9f9f6;
@@ -639,7 +639,7 @@ tbody tr:focus-within {
 }
 .person-cell small {
   display: block;
-  color: #777b70;
+  color: #696e63;
   font-size: 11px;
   margin-top: 4px;
 }
