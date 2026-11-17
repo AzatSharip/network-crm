@@ -159,7 +159,9 @@ def login(
 ):
     email = str(data.email).lower()
     limit_login(request, email)
-    user = db.scalar(select(User).where(User.email == email))
+    # Serialize session issuance with credential changes until commit. A login that
+    # verified the old hash must not create a session after password revocation.
+    user = db.scalar(select(User).where(User.email == email).with_for_update())
     valid = verify(data.password, user.password_hash if user else DUMMY_HASH)
     if not user or not valid or not user.active:
         fail(401, "Неверные учётные данные")

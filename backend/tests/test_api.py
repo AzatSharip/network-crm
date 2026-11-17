@@ -479,3 +479,99 @@ def test_commit_failure_cannot_return_success(setup, monkeypatch):
     assert response.status_code == 409
     with Session(admin) as db:
         assert db.scalar(select(Source.id).where(Source.name == "Must rollback")) is None
+
+
+@pytest.mark.parametrize("first", ["login", "change"])
+def test_password_change_serializes_session_issuance(setup, monkeypatch, first):
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    import app.main as main
+
+    reached, release = threading.Event(), threading.Event()
+    once = threading.Lock()
+    stopped = False
+
+    def pause_once():
+        nonlocal stopped
+        with once:
+            pause = not stopped
+            stopped = True
+        if pause:
+            reached.set()
+            assert release.wait(8), "test synchronization timed out"
+
+    if first == "login":
+        original = main.verify
+
+        def paused_verify(password, hashed):
+            result = original(password, hashed)
+            pause_once()
+            return result
+
+        monkeypatch.setattr(main, "verify", paused_verify)
+    else:
+        original = main.hasher.hash
+
+        def paused_hash(self, password, **kwargs):
+            pause_once()
+            return original(password, **kwargs)
+
+        monkeypatch.setattr(type(main.hasher), "hash", paused_hash)
+
+    client = TestClient(app, headers={"Origin": ORIGIN})
+    new = "Synthetic-concurrent-new-password-123!"
+
+    def login():
+        return client.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": PASSWORD}
+        )
+
+    def change():
+        return setup["clients"][0].post(
+            "/api/v1/auth/password", json={"current_password": PASSWORD, "new_password": new}
+        )
+
+    operations = {"login": login, "change": change}
+    second = "change" if first == "login" else "login"
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first_result = pool.submit(operations[first])
+        try:
+            assert reached.wait(5)
+            second_result = pool.submit(operations[second])
+            # Observe a real PostgreSQL row-lock wait, not a timing-only assertion.
+            deadline = time.monotonic() + 4
+            blocked = False
+            while time.monotonic() < deadline:
+                with admin.connect() as db:
+                    blocked = db.scalar(
+                        text(
+                            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE "
+                            "datname=current_database() AND wait_event_type='Lock' "
+                            "AND query LIKE '%users%')"
+                        )
+                    )
+                if blocked or second_result.done():
+                    break
+                time.sleep(0.02)
+            assert blocked and not second_result.done(), "session issuance was not serialized"
+        finally:
+            release.set()
+        outcomes = {first: first_result.result(timeout=5), second: second_result.result(timeout=5)}
+    assert outcomes["change"].status_code == 200
+    assert outcomes["login"].status_code == (200 if first == "login" else 401)
+    assert client.get("/api/v1/me").status_code == 401
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": PASSWORD}
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            "/api/v1/auth/login", json={"email": "user0@example.com", "password": new}
+        ).status_code
+        == 200
+    )
+    client.close()

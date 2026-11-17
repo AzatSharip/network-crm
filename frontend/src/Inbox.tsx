@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, X, Inbox as InboxIcon } from "lucide-react";
 import { api, errorMessage, type Suggestion, type Member } from "./api";
+import { contactPreview } from "./contact-preview";
 import { Button } from "./components/ui/button";
 const labels: Record<string, string> = {
   display_name: "Имя",
@@ -99,8 +100,7 @@ export function Inbox({
       return value
         .map((item) => {
           if (typeof item === "string") return item;
-          if (key === "contacts")
-            return `${item.platform} · ${item.kind === "numeric_id" ? "ID" : item.kind}: ${item.value}${item.label ? " (" + item.label + ")" : ""}${item.is_primary ? " · основной" : ""}`;
+          if (key === "contacts") return contactPreview(item);
           if (key === "organizations")
             return `${item.name}${item.title ? " · " + item.title : ""}`;
           if (key === "connections")

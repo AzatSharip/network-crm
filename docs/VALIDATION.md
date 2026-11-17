@@ -5,7 +5,7 @@
 | Проверка | Результат |
 |---|---|
 | Python ruff, frontend TypeScript/Prettier/Vite | PASS |
-| PostgreSQL API integration | PASS, 32 теста, PostgreSQL18.7, отдельная одноразовая БД |
+| PostgreSQL API integration | PASS, 34 теста, PostgreSQL18.7, отдельная одноразовая БД |
 | Alembic drift / downgrade → upgrade | PASS, только отдельная тестовая БД |
 | Chrome desktop через полный Compose/nginx | PASS: несколько способов связи, создание/правка/поиск, связь, граф, выход |
 | Chrome mobile390×844 | PASS: без горизонтального переполнения, focus/Escape |
@@ -28,3 +28,5 @@
 API-тесты покрывают IDOR/BOLA, FORCE RLS с runtime-ролью, viewer/editor, CSRF/Origin, logout/revoke-all/password change, Secure/__Host cookies в HTTPS-режиме, rate/body limits, небезопасные URL, Telegram ID, cross-platform phone/email duplicate warning, idempotency, optimistic versions, направленный bounded graph, expiring one-use invitations, limited/revoked agent tokens, conflict rollback, preview удаляемых AI-полей. Отдельный regression проверяет, что ошибка commit возвращает ошибку HTTP и откатывает карточку до отправки успешного ответа.
 
 Эти проверки не являются независимым pentest. Локальный HTTPS cookie test не подменяет реальный публичный TLS smoke. Search benchmark и локальный backup снимались до последних UI/transaction изменений; версия и данные явно указаны. Физическое мобильное устройство не проверено.
+
+После независимого review исправлены R1 (общая row lock при login/password change; два порядка реальной конкурентной транзакции проверены) и R2 (полный before/after source/verification и очистки контакта; три renderer regression PASS). 34 API tests и frontend build/lint PASS. Исправленный exact commit ожидает повторного review.
